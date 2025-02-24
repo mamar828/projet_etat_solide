@@ -11,3 +11,5 @@ __*
 
 # Do not ignore the hidden .gitignore file
 !.gitignore
+
+tests.py
