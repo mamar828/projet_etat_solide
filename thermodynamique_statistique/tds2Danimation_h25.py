@@ -65,6 +65,33 @@ for i in range(Natoms):
     pz = 0
     p.append(vector(px,py,pz)) # liste de la quantité de mouvement initiale de toutes les sphères
 
+
+
+
+
+
+#CHANGEMENT DE CODE QUESTION 3
+# Choix de la particule à suivre (la première)
+particule_suivie = 0  # On suit la première particule
+
+# Listes pour stocker les valeurs
+distances = []
+temps_ecoule = []
+
+# Variables de suivi
+position_initiale = apos[particule_suivie]  
+temps_initial = 0  
+temps_ecoule_tot = 0  # Temps écoulé total
+
+
+
+
+
+
+
+
+
+
 #### FONCTION POUR IDENTIFIER LES COLLISIONS, I.E. LORSQUE LA DISTANCE ENTRE LES CENTRES DE 2 SPHÈRES EST À LA LIMITE DE S'INTERPÉNÉTRER ####
 def checkCollisions():
     hitlist = []   # initialisation
@@ -106,6 +133,35 @@ while True:
 
     #### LET'S FIND THESE COLLISIONS!!! ####
     hitlist = checkCollisions()
+
+
+
+
+
+
+
+
+
+    #CHANGEMENT DE CODE QUESTION 3
+    for ij in hitlist:
+        i, j = ij  # Indices des particules en collision
+
+
+    # Vérifier si la particule suivie est impliquée dans cette collision
+    if i == particule_suivie or j == particule_suivie:
+        position_actuelle = apos[particule_suivie]  
+        distance_parcourue = mag(position_actuelle - position_initiale)  # Distance entre collisions
+        distances.append(distance_parcourue)  # Ajouter à la liste
+
+
+
+
+
+
+
+
+
+
 
     #### CONSERVE LA QUANTITÉ DE MOUVEMENT AUX COLLISIONS ENTRE SPHÈRES ####
     for ij in hitlist:
