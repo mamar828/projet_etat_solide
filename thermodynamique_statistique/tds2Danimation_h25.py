@@ -155,5 +155,5 @@ for step in range(50000):
 targeted_particle = follow_particle(targeted_particle, target_particle_index, step, dt, end_path=True)
 p_squared_norm = np.array([pi.mag2 for pi in p])
 # Save necessary data
-np.savetxt("thermodynamique_statistique/data/part_1_targeted_particle.csv", targeted_particle, delimiter=",")
-np.savetxt("thermodynamique_statistique/data/part_1_p_squared_norm.csv", p_squared_norm, delimiter=",")
+# np.savetxt("thermodynamique_statistique/data/part_1_targeted_particle.csv", targeted_particle, delimiter=",")
+# np.savetxt("thermodynamique_statistique/data/part_1_p_squared_norm.csv", p_squared_norm, delimiter=",")

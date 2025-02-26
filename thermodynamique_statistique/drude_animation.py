@@ -28,8 +28,7 @@ mass = m_e
 Ratom = 0.01 # wildly exaggerated size of an atom
 k = 1.4E-23 # Boltzmann constant
 T = 10 # around room temperature
-E = vector(0,2,0) * 1e-22 # electric field
-p_init = vector(0,0,0) * 1e-25 # initial average momentum
+E = vector(0,0,0) * 1e-22 # electric field
 
 #### CANEVAS DE FOND ####
 L = 1 # container is a cube L on a side
@@ -74,8 +73,8 @@ for i in range(Natoms):
     apos.append(vec(x,y,z)) # liste de la position initiale de toutes les sphères
 #    theta = pi*random() # direction de coordonnées sphériques, superflue en 2D
     phi = 2*pi*random() # direction aléatoire pour la quantité de mouvement
-    px = pavg*cos(phi) + p_init.x  # qte de mvt initiale selon l'équipartition
-    py = pavg*sin(phi) + p_init.y
+    px = pavg*cos(phi)  # qte de mvt initiale selon l'équipartition
+    py = pavg*sin(phi)
     pz = 0
     p.append(vector(px,py,pz)) # liste de la quantité de mouvement initiale de toutes les sphères
 
@@ -99,7 +98,7 @@ def apply_electric_field(hitlist: list):
 ## ATTENTION : la boucle laisse aller l'animation aussi longtemps que souhaité, assurez-vous de savoir comment interrompre vous-même correctement (souvent `ctrl+c`, mais peut varier)
 ## ALTERNATIVE : vous pouvez bien sûr remplacer la boucle "while" par une boucle "for" avec un nombre d'itérations suffisant pour obtenir une bonne distribution statistique à l'équilibre
 for i in range(10000):
-    rate(300)  # limite la vitesse de calcul de la simulation pour que l'animation soit visible à l'oeil humain!
+    # rate(300)  # limite la vitesse de calcul de la simulation pour que l'animation soit visible à l'oeil humain!
 
     #### DÉPLACE TOUTES LES SPHÈRES D'UN PAS SPATIAL deltax
     vitesse = []   # vitesse instantanée de chaque sphère
