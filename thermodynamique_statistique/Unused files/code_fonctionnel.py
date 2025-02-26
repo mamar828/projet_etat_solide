@@ -18,35 +18,27 @@ phi = np.random.rand(Natoms)
 p = avg_p * np.stack([np.cos(phi), np.sin(phi), 0*phi], 1) # quantité de mouvement des sphères
 pos = np.stack([np.array([L*random()-L/2, L*random()-L/2, 0]) for _ in range(Natoms)], 0) # position des sphères
 
-target_particle_index = 0
-targeted_particle = np.array([[0.0, 0.0, 0.0, 0.0]])
-
+target_particle_index = 0 # index of the particle whose displacement will be saved at each colision
+targeted_particle = np.array([[0.0, 0.0, 0.0, 0.0]]) # starting array to save the targeted particle's displacement
 def check_collisions():
     hitlist = []
-    for i, j in itertools.combinations([i for i in range(Natoms)], 2):
-        if LA.norm(pos[i] - pos[j]) < (2*Ratom):
+    Datom = 2*Ratom
+    for i, j in itertools.combinations([i for i in range(Natoms)], 2): # Checks non-duplicate pairs of particles
+        if (pos[i, 0] - pos[j,0])**2+(pos[i,1] - pos[j,1])**2+(pos[i,2] - pos[j,2])**2 < Datom**2: # 
+        # if LA.norm(pos[i]-pos[j]) < Datom:
             hitlist.append((i,j))
     return hitlist
 
 def follow_particle(data, particle_index, step, time_step, end_path=False):
     if end_path:
-        return data[:-1, :2]
-    time = step*time_step
-    if np.all(np.isclose(data[-1,:], np.array([[0.0, 0.0, 0.0, 0.0]]), time_step) == True):
-        data[-1,:] =  np.expand_dims(np.concatenate((np.array([time]), pos[particle_index])), axis=0)
-    else:
-        data[-1, :] = np.expand_dims(
-            np.concatenate((np.array([time-data[-1, 0]]), pos[particle_index] - data[-1, 1:])),
-            axis=0
-        )
-        # data[-1, :] = np.array([time-data[-1, 0], pos[particle_index] - data[-1, 1:]])
-        data =  np.concatenate(
-            (data, np.expand_dims(np.concatenate((np.array([time]), pos[particle_index])), axis=0)),
-            0
-        )
-    return data
+        return data[2:, :]
+    collision_data = np.concatenate(
+        (np.array([step*time_step-data[-1,0]]), p[particle_index]/mass*(step*time_step-data[-1,0])),
+        axis=0
+    )
+    return np.vstack((data, collision_data))
 
-for step in range(100):
+for step in range(10000):
     pos += p*dt/mass
 
     for i in range(Natoms):
@@ -54,21 +46,19 @@ for step in range(100):
             p[i][0] *= -1
         if  abs(pos[i][1]) > L/2:
             p[i][1] *= -1
-
     hitlist = check_collisions()
-    # prev_particles = []
+    prev_particles = []
     #### CONSERVE LA QUANTITÉ DE MOUVEMENT AUX COLLISIONS ENTRE SPHÈRES ####
     for i, j in hitlist:
         if target_particle_index in (i,j):
-            # if target_particle_index not in prev_particles:
-            targeted_particle = follow_particle(targeted_particle, target_particle_index, step, dt) # To compute the inter-collision speed, a maximum of one collision per time step should be used
-            # prev_particles += [i, j]
+            if target_particle_index not in prev_particles:
+                targeted_particle = follow_particle(targeted_particle, target_particle_index, step, dt) # To compute the inter-collision speed, a maximum of one collision per time step should be used
+            prev_particles += [i, j]
         # defining new variables for each pair of particles interacting
         vcm = (p[i]+p[j])/(2*mass)
         posi, posj = pos[i], pos[j]
         vi, vj = p[i]/mass, p[j]/mass
         rrel, vrel = posi-posj, vj-vi  # vecteur pour la distance entre les centres des 2 sphères
-
         # exclusion de cas où il n'y a pas de changements à faire
         if LA.norm(vrel) == 0: continue  # exactly same velocities si et seulement si le vecteur vrel devient nul, la trajectoire des 2 sphères continue alors côte à côte
         if LA.norm(rrel) > Ratom: continue  # one atom went all the way through another, la collision a été "manquée" à l'intérieur du pas deltax
@@ -79,12 +69,10 @@ for step in range(100):
         alpha = np.asin(dy/(2*Ratom))       # alpha is the angle of the triangle composed of rrel, path of atom j, and a line from the center of atom i to the center of atom j where atome j hits atom i
         d = (2*Ratom)*np.cos(alpha)-dx      # distance traveled into the atom from first contact
         deltat = d/LA.norm(vrel) # time spent moving from first contact to position inside atom
-
         #### CHANGE L'INTERPÉNÉTRATION DES SPHÈRES PAR LA CINÉTIQUE DE COLLISION ####
         posi_1, posj_1 = posi-vi*deltat, posj-vj*deltat # back up to contact configuration
         pcmi, pcmj = p[i]-mass*vcm, p[j]-mass*vcm   # transform momenta to center-of-momentum frame
         pcmi, pcmj = pcmi-2*rrel*np.dot(pcmi, rrel)/LA.norm(rrel)**2, pcmj-2*rrel*np.dot(pcmj, rrel)/(LA.norm(rrel)**2) # bounce in center-of-momentum frame
         p[i], p[j] = pcmi+mass*vcm, pcmj+mass*vcm # transform momenta back to lab frame
         pos[i], pos[j] = posi+(p[i]/mass)*deltat, posj+(p[j]/mass)*deltat # move forward deltat in time, ramenant au même temps où sont rendues les autres sphères dans l'itération
-        
 targeted_particle = follow_particle(targeted_particle, target_particle_index, step, dt, end_path=True)

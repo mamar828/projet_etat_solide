@@ -11,8 +11,6 @@
 
 from vpython import *
 import numpy as np
-import math
-import matplotlib.pyplot as plt
 
 # win = 500 # peut aider à définir la taille d'un autre objet visuel comme un histogramme proportionnellement à la taille du canevas.
 
@@ -32,11 +30,6 @@ L = 1 # container is a cube L on a side
 gray = color.gray(0.7) # color of edges of container and spheres below
 animation = canvas( width=750, height=500) # , align='left')
 animation.range = L
-# animation.title = 'Théorie cinétique des gaz parfaits'
-# s = """  Simulation de particules modélisées en sphères dures pour représenter leur trajectoire ballistique avec collisions. Une sphère est colorée et grossie seulement pour l’effet visuel permettant de suivre sa trajectoire plus facilement dans l'animation, sa cinétique est identique à toutes les autres particules.
-
-# """
-# animation.caption = s
 
 #### ARÊTES DE BOÎTE 2D ####
 d = L/2+Ratom
@@ -65,33 +58,6 @@ for i in range(Natoms):
     pz = 0
     p.append(vector(px,py,pz)) # liste de la quantité de mouvement initiale de toutes les sphères
 
-
-
-
-
-
-#CHANGEMENT DE CODE QUESTION 3
-# Choix de la particule à suivre (la première)
-particule_suivie = 0  # On suit la première particule
-
-# Listes pour stocker les valeurs
-distances = []
-temps_ecoule = []
-
-# Variables de suivi
-position_initiale = apos[particule_suivie]  
-temps_initial = 0  
-temps_ecoule_tot = 0  # Temps écoulé total
-
-
-
-
-
-
-
-
-
-
 #### FONCTION POUR IDENTIFIER LES COLLISIONS, I.E. LORSQUE LA DISTANCE ENTRE LES CENTRES DE 2 SPHÈRES EST À LA LIMITE DE S'INTERPÉNÉTRER ####
 def checkCollisions():
     hitlist = []   # initialisation
@@ -106,12 +72,21 @@ def checkCollisions():
                 hitlist.append([i,j]) # liste numérotant toutes les paires de sphères en collision
     return hitlist
 
+target_particle_index = 0 # index of the particle whose displacement will be saved at each colision
+targeted_particle = np.array([[0.0, 0.0, 0.0, 0.0]]) # starting array to save the targeted particle's displacement
+
+def follow_particle(data, idx, step, time_step, end_path=False):
+    if end_path:
+        return data[2:, :] # Since the difference is computed with each collision, we remove the initial [0,0,0,0] array and the first difference
+    collision_data = np.array([1, p[idx].x/mass, p[idx].y/mass, p[idx].z/mass])* (step*time_step-data[-1,0])
+    return np.vstack((data, collision_data))
+
 #### BOUCLE PRINCIPALE POUR L'ÉVOLUTION TEMPORELLE DE PAS dt ####
 ## ATTENTION : la boucle laisse aller l'animation aussi longtemps que souhaité, assurez-vous de savoir comment interrompre vous-même correctement (souvent `ctrl+c`, mais peut varier)
 ## ALTERNATIVE : vous pouvez bien sûr remplacer la boucle "while" par une boucle "for" avec un nombre d'itérations suffisant pour obtenir une bonne distribution statistique à l'équilibre
 
-while True:
-    rate(300)  # limite la vitesse de calcul de la simulation pour que l'animation soit visible à l'oeil humain!
+for step in range(50000):
+    # rate(300)  # limite la vitesse de calcul de la simulation pour que l'animation soit visible à l'oeil humain!
 
     #### DÉPLACE TOUTES LES SPHÈRES D'UN PAS SPATIAL deltax
     vitesse = []   # vitesse instantanée de chaque sphère
@@ -133,42 +108,16 @@ while True:
 
     #### LET'S FIND THESE COLLISIONS!!! ####
     hitlist = checkCollisions()
-
-
-
-
-
-
-
-
-
-    #CHANGEMENT DE CODE QUESTION 3
-    for ij in hitlist:
-        i, j = ij  # Indices des particules en collision
-
-
-    # Vérifier si la particule suivie est impliquée dans cette collision
-    if i == particule_suivie or j == particule_suivie:
-        position_actuelle = apos[particule_suivie]  
-        distance_parcourue = mag(position_actuelle - position_initiale)  # Distance entre collisions
-        distances.append(distance_parcourue)  # Ajouter à la liste
-
-
-
-
-
-
-
-
-
-
-
+    prev_particles = []
     #### CONSERVE LA QUANTITÉ DE MOUVEMENT AUX COLLISIONS ENTRE SPHÈRES ####
     for ij in hitlist:
-
         # définition de nouvelles variables pour chaque paire de sphères en collision
         i = ij[0]  # extraction du numéro des 2 sphères impliquées à cette itération
         j = ij[1]
+        if target_particle_index in (i,j):
+            if target_particle_index not in prev_particles:
+                targeted_particle = follow_particle(targeted_particle, target_particle_index, step, dt) # To compute the inter-collision speed, a maximum of one collision per time step should be used
+            prev_particles += [i, j]
         ptot = p[i]+p[j]   # quantité de mouvement totale des 2 sphères
         mtot = 2*mass    # masse totale des 2 sphères
         Vcom = ptot/mtot   # vitesse du référentiel barycentrique/center-of-momentum (com) frame
@@ -202,3 +151,9 @@ while True:
         p[j] = pcomj+mass*Vcom
         apos[i] = posi+(p[i]/mass)*deltat # move forward deltat in time, ramenant au même temps où sont rendues les autres sphères dans l'itération
         apos[j] = posj+(p[j]/mass)*deltat
+
+targeted_particle = follow_particle(targeted_particle, target_particle_index, step, dt, end_path=True)
+p_squared_norm = np.array([pi.mag2 for pi in p])
+# Save necessary data
+np.savetxt("thermodynamique_statistique/data/part_1_targeted_particle.csv", targeted_particle, delimiter=",")
+np.savetxt("thermodynamique_statistique/data/part_1_p_squared_norm.csv", p_squared_norm, delimiter=",")
