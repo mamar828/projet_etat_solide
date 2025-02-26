@@ -14,20 +14,22 @@ import numpy as np
 from scipy.stats import maxwell
 import itertools
 from copy import deepcopy
+from scipy.constants import m_e
 
 # win = 500 # peut aider à définir la taille d'un autre objet visuel comme un histogramme proportionnellement à la taille du canevas.
 
 # Déclaration de variables influençant le temps d'exécution de la simulation
 Natoms = 50  # change this to have more or fewer atoms
-dt = 1E-5  # pas d'incrémentation temporel
+dt = 1E-7  # pas d'incrémentation temporel
 
 # Déclaration de variables physiques "Typical values"
 DIM = 2 #Nombre de degrés de liberté de la simulation 
-mass = 4E-3/6E23 # helium mass
+mass = m_e
 Ratom = 0.01 # wildly exaggerated size of an atom
 k = 1.4E-23 # Boltzmann constant
-T = 1 # around room temperature
-E = vector(0,7e-23,0) # electric field
+T = 10 # around room temperature
+E = vector(0,2,0) * 1e-22 # electric field
+p_init = vector(0,0,0) * 1e-25 # initial average momentum
 
 #### CANEVAS DE FOND ####
 L = 1 # container is a cube L on a side
@@ -55,7 +57,6 @@ complete_p_mag = []
 complete_apos = []
 
 ionic_cores_rows, ionic_cores_cols = 5, 5
-
 ionic_cores_x, ionic_cores_y = np.meshgrid(
     np.linspace(-d, d, ionic_cores_cols+2)[1:-1],
     np.linspace(-d, d, ionic_cores_rows+2)[1:-1]
@@ -73,8 +74,8 @@ for i in range(Natoms):
     apos.append(vec(x,y,z)) # liste de la position initiale de toutes les sphères
 #    theta = pi*random() # direction de coordonnées sphériques, superflue en 2D
     phi = 2*pi*random() # direction aléatoire pour la quantité de mouvement
-    px = pavg*cos(phi)  # qte de mvt initiale selon l'équipartition
-    py = pavg*sin(phi)
+    px = pavg*cos(phi) + p_init.x  # qte de mvt initiale selon l'équipartition
+    py = pavg*sin(phi) + p_init.y
     pz = 0
     p.append(vector(px,py,pz)) # liste de la quantité de mouvement initiale de toutes les sphères
 
@@ -92,7 +93,7 @@ def apply_electric_field(hitlist: list):
     global p
     for i in range(len(p)):
         if i not in hitlist:
-            p[i] += E * dt
+            p[i] += - E * dt
 
 #### BOUCLE PRINCIPALE POUR L'ÉVOLUTION TEMPORELLE DE PAS dt ####
 ## ATTENTION : la boucle laisse aller l'animation aussi longtemps que souhaité, assurez-vous de savoir comment interrompre vous-même correctement (souvent `ctrl+c`, mais peut varier)
@@ -123,19 +124,18 @@ for i in range(10000):
 
     #### CONSERVE LA QUANTITÉ DE MOUVEMENT AUX COLLISIONS ENTRE SPHÈRES ####
     for i in hitlist:
-        Atoms[i].color = vec(1,0.44,0.76)
         p[i] = vector(maxwell.rvs(mb_distrib_scale) * mass, 0, 0).rotate(angle=np.random.random() * 2*np.pi)
 
     apply_electric_field(hitlist)
 
-    complete_p_mag.append([p_i.mag for p_i in p])
+    complete_p_mag.append(deepcopy(p))
     complete_apos.append(deepcopy(apos))
 
 
 # Save necessary data
 # with open("thermodynamique_statistique/data/drude_p.csv", "w") as f:
 #     for p_step in complete_p_mag:
-#         f.write(",".join(map(str, p_step)) + "\n")
-# with open(f"thermodynamique_statistique/data/drude_apos_E={E.y}.csv", "w") as f:
-#     for p_step in complete_apos:
-#         f.write(",".join(map(lambda v: f"{v.x:.4f},{v.y:.4f}", p_step)) + "\n")
+#         f.write(",".join(map(lambda p: f"{p.x:.4e},{p.y:.4e}", p_step)) + "\n")
+# with open(f"thermodynamique_statistique/data/drude_apos_E={E.y:.0e}.csv", "w") as f:
+#     for x_step in complete_apos:
+#         f.write(",".join(map(lambda v: f"{v.x:.4f},{v.y:.4f}", x_step)) + "\n")
