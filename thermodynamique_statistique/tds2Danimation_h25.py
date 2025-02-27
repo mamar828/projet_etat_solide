@@ -74,14 +74,16 @@ def checkCollisions():
 
 target_part_i = 0 # index of the particle whose displacement will be saved at each colision
 target_part = np.zeros((1,4)) # starting array to save the targeted particle's displacement
-def follow_particle():
-    global target_part, targeted_particle_index, p
+last_step = 0
+def follow_particle(step):
+    global target_part, targeted_particle_index, dt, last_step, p
     target_part = np.vstack((
         target_part, 
         np.array(
             [mass, p[target_part_i].x, p[target_part_i].y, p[target_part_i].z]
-        ) / mass * (step*dt-target_part[:,0].sum())
+        ) / mass * (step-last_step) * dt
     ))
+    last_step = step
     # La variable target_part doit persister après la simulation puisqu'elle contient l'ensemble des distances
     # parcourues et le temps entre chaque collision
 
@@ -119,7 +121,7 @@ for step in range(50000):
         i = ij[0]  # extraction du numéro des 2 sphères impliquées à cette itération
         j = ij[1]
         if target_part_i in (i,j) and collision_counter == 0:
-            follow_particle()
+            follow_particle(step)
             collision_counter = 1
         ptot = p[i]+p[j]   # quantité de mouvement totale des 2 sphères
         mtot = 2*mass    # masse totale des 2 sphères
