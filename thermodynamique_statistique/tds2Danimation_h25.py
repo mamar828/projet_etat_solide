@@ -72,14 +72,18 @@ def checkCollisions():
                 hitlist.append([i,j]) # liste numérotant toutes les paires de sphères en collision
     return hitlist
 
-target_particle_index = 0 # index of the particle whose displacement will be saved at each colision
-targeted_particle = np.array([[0.0, 0.0, 0.0, 0.0]]) # starting array to save the targeted particle's displacement
-
-def follow_particle(data, idx, step, time_step, end_path=False):
-    if end_path:
-        return data[2:, :] # Since the difference is computed with each collision, we remove the initial [0,0,0,0] array and the first difference
-    collision_data = np.array([1, p[idx].x/mass, p[idx].y/mass, p[idx].z/mass])* (step*time_step-data[-1,0])
-    return np.vstack((data, collision_data))
+target_part_i = 0 # index of the particle whose displacement will be saved at each colision
+target_part = np.zeros((1,4)) # starting array to save the targeted particle's displacement
+def follow_particle():
+    global target_part, targeted_particle_index, p
+    target_part = np.vstack((
+        target_part, 
+        np.array(
+            [mass, p[target_part_i].x, p[target_part_i].y, p[target_part_i].z]
+        ) / mass * (step*dt-target_part[:,0].sum())
+    ))
+    # La variable target_part doit persister après la simulation puisqu'elle contient l'ensemble des distances
+    # parcourues et le temps entre chaque collision
 
 #### BOUCLE PRINCIPALE POUR L'ÉVOLUTION TEMPORELLE DE PAS dt ####
 ## ATTENTION : la boucle laisse aller l'animation aussi longtemps que souhaité, assurez-vous de savoir comment interrompre vous-même correctement (souvent `ctrl+c`, mais peut varier)
@@ -108,16 +112,15 @@ for step in range(50000):
 
     #### LET'S FIND THESE COLLISIONS!!! ####
     hitlist = checkCollisions()
-    prev_particles = []
+    collision_counter = 0
     #### CONSERVE LA QUANTITÉ DE MOUVEMENT AUX COLLISIONS ENTRE SPHÈRES ####
     for ij in hitlist:
         # définition de nouvelles variables pour chaque paire de sphères en collision
         i = ij[0]  # extraction du numéro des 2 sphères impliquées à cette itération
         j = ij[1]
-        if target_particle_index in (i,j):
-            if target_particle_index not in prev_particles:
-                targeted_particle = follow_particle(targeted_particle, target_particle_index, step, dt) # To compute the inter-collision speed, a maximum of one collision per time step should be used
-            prev_particles += [i, j]
+        if target_part_i in (i,j) and collision_counter == 0:
+            follow_particle()
+            collision_counter = 1
         ptot = p[i]+p[j]   # quantité de mouvement totale des 2 sphères
         mtot = 2*mass    # masse totale des 2 sphères
         Vcom = ptot/mtot   # vitesse du référentiel barycentrique/center-of-momentum (com) frame
@@ -152,8 +155,7 @@ for step in range(50000):
         apos[i] = posi+(p[i]/mass)*deltat # move forward deltat in time, ramenant au même temps où sont rendues les autres sphères dans l'itération
         apos[j] = posj+(p[j]/mass)*deltat
 
-targeted_particle = follow_particle(targeted_particle, target_particle_index, step, dt, end_path=True)
 p_squared_norm = np.array([pi.mag2 for pi in p])
 # Save necessary data
-# np.savetxt("thermodynamique_statistique/data/part_1_targeted_particle.csv", targeted_particle, delimiter=",")
-# np.savetxt("thermodynamique_statistique/data/part_1_p_squared_norm.csv", p_squared_norm, delimiter=",")
+# np.savetxt("thermodynamique_statistique/data/part_1_targeted_particle_test.csv", target_part, delimiter=",")
+# np.savetxt("thermodynamique_statistique/data/part_1_p_squared_norm_test.csv", p_squared_norm, delimiter=",")
